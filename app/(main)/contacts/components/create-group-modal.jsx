@@ -266,3 +266,4 @@ export function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     </Dialog>
   );
 }
+

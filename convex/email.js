@@ -9,14 +9,17 @@ export const sendEmail = action({
     subject: v.string(),
     html: v.string(),
     text: v.optional(v.string()),
-    apiKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const resend = new Resend(args.apiKey);
+    if (!process.env.RESEND_API_KEY) {
+      return { success: false, error: "RESEND_API_KEY is not configured" };
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     try {
       const result = await resend.emails.send({
-        from: "Splitr <onboarding@resend.dev>",
+        from: "FairShare <onboarding@resend.dev>",
         to: args.to,
         subject: args.subject,
         html: args.html,
@@ -28,7 +31,8 @@ export const sendEmail = action({
       return { success: true, id: result.id };
     } catch (error) {
       console.error("Failed to send email:", error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
     }
   },
 });
+

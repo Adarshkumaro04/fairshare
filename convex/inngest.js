@@ -102,8 +102,6 @@ export const getUsersWithOutstandingDebts = query({
         }
       }
 
-      console.log(user.name, debts);
-
       if (debts.length) {
         result.push({
           _id: user._id,
@@ -207,3 +205,4 @@ export const getUserMonthlyExpenses = query({
     });
   },
 });
+

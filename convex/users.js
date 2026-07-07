@@ -61,6 +61,15 @@ export const getCurrentUser = query({
   },
 });
 
+export const getUserById = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId);
+  },
+});
+
 // Search users by name or email (for adding participants)
 export const searchUsers = query({
   args: {
@@ -106,3 +115,4 @@ export const searchUsers = query({
       }));
   },
 });
+

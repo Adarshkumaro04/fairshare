@@ -47,6 +47,8 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [splits, setSplits] = useState([]);
+  const [magicText, setMagicText] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
 
   // Mutations and queries
   const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
@@ -93,6 +95,63 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
       ]);
     }
   }, [currentUser, participants]);
+
+  const handleMagicImport = async () => {
+    if (!magicText.trim()) {
+      toast.error("Please enter a description of the expense first.");
+      return;
+    }
+
+    setIsParsing(true);
+    try {
+      const response = await fetch("/api/parse-expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: magicText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to parse expense.");
+      }
+
+      if (data.description) {
+        setValue("description", data.description);
+      }
+
+      if (data.amount) {
+        setValue("amount", String(data.amount));
+      }
+
+      if (data.date) {
+        const parsedDate = new Date(data.date);
+        if (!Number.isNaN(parsedDate.getTime())) {
+          setSelectedDate(parsedDate);
+          setValue("date", parsedDate);
+        }
+      }
+
+      if (data.category) {
+        const normalizedCategory = data.category.toLowerCase();
+        const categoryMatch = categories.find(
+          (category) => category.name.toLowerCase() === normalizedCategory.toLowerCase()
+        );
+        const categoryId = categoryMatch?.id || "other";
+        setValue("category", categoryId);
+      }
+
+      if (data.comment) {
+        toast.success(data.comment);
+      } else {
+        toast.success("Expense details imported successfully.");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to import expense details.");
+    } finally {
+      setIsParsing(false);
+    }
+  };
 
   // Handle form submission
   const onSubmit = async (data) => {
@@ -154,6 +213,28 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-4">
+        <div className="rounded-lg border border-dashed border-muted-foreground/30 p-4 space-y-3">
+          <Label htmlFor="magic-import">Magic Import</Label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="magic-import"
+              value={magicText}
+              onChange={(event) => setMagicText(event.target.value)}
+              placeholder="e.g. Dinner at a fancy steakhouse for $84 on 2026-07-04"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleMagicImport}
+              disabled={isParsing}
+            >
+              {isParsing ? "Importing..." : "Import"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Describe the expense in plain English and we&apos;ll fill the form for you.
+          </p>
+        </div>
         {/* Description and amount */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -362,3 +443,4 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
     </form>
   );
 }
+

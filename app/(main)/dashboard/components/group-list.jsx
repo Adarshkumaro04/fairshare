@@ -53,3 +53,4 @@ export function GroupList({ groups }) {
     </div>
   );
 }
+

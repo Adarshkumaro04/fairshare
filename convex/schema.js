@@ -64,4 +64,12 @@ export default defineSchema({
       })
     ),
   }),
+
+  reminderLogs: defineTable({
+    fromUserId: v.id("users"),
+    toUserId: v.id("users"),
+    groupId: v.optional(v.id("groups")),
+    lastSentAt: v.number(),
+  }).index("by_from_to_group", ["fromUserId", "toUserId", "groupId"]),
 });
+

@@ -84,3 +84,4 @@ export function ExpenseSummary({ monthlySpending, totalSpent }) {
     </Card>
   );
 }
+

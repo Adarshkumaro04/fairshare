@@ -36,3 +36,4 @@ export function useStoreUser() {
     isAuthenticated: isAuthenticated && userId !== null,
   };
 }
+

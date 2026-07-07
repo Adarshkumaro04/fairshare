@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import { useAction } from "convex/react";
 import { useConvexQuery } from "@/hooks/use-convex-query";
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { toast } from "sonner";
 
 /**
  * Expected `balances` shape (one object per member):
@@ -11,13 +14,15 @@ import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
  *   id:           string;           // user id
  *   name:         string;
  *   imageUrl?:    string;
- *   totalBalance: number;           // + ve ⇒ they are owed, – ve ⇒ they owe
+ *   totalBalance: number;           // +ve => they are owed, -ve => they owe
  *   owes:   { to: string;   amount: number }[];  // this member → others
  *   owedBy: { from: string; amount: number }[];  // others → this member
  * }
  */
-export function GroupBalances({ balances }) {
+export function GroupBalances({ balances, groupId }) {
   const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
+  const sendReminder = useAction(api.reminders.sendPaymentReminder);
+  const [sendingId, setSendingId] = useState(null);
 
   /* ───── guards ────────────────────────────────────────────────────────── */
   if (!balances?.length || !currentUser) {
@@ -33,7 +38,7 @@ export function GroupBalances({ balances }) {
   if (!me) {
     return (
       <div className="text-center py-4 text-muted-foreground">
-        You’re not part of this group
+        You're not part of this group
       </div>
     );
   }
@@ -54,6 +59,31 @@ export function GroupBalances({ balances }) {
     me.totalBalance === 0 &&
     owedByMembers.length === 0 &&
     owingToMembers.length === 0;
+
+  const handleRemind = async (member) => {
+    setSendingId(member.id);
+
+    try {
+      const result = await sendReminder({
+        toUserId: member.id,
+        groupId,
+        amount: member.amount,
+      });
+
+      if (result.success) {
+        toast.success(`Reminder sent to ${member.name}`);
+      } else if (result.reason === "cooldown") {
+        const hoursLeft = Math.ceil(
+          (result.nextAvailableAt - Date.now()) / (60 * 60 * 1000)
+        );
+        toast.error(`Already reminded recently. Try again in ${hoursLeft}h.`);
+      } else {
+        toast.error("Couldn't send reminder. Please try again.");
+      }
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   /* ───── UI ────────────────────────────────────────────────────────────── */
   return (
@@ -113,9 +143,18 @@ export function GroupBalances({ balances }) {
                       </Avatar>
                       <span className="text-sm">{member.name}</span>
                     </div>
-                    <span className="font-medium text-green-600">
-                      ${member.amount.toFixed(2)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-green-600">
+                        ${member.amount.toFixed(2)}
+                      </span>
+                      <button
+                        onClick={() => handleRemind(member)}
+                        disabled={sendingId === member.id}
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                      >
+                        {sendingId === member.id ? "Sending..." : "Remind"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
