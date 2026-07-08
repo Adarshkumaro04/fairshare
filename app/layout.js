@@ -1,4 +1,5 @@
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
@@ -17,8 +18,10 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/logos/logo-s.png" sizes="any" />
-        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-        <script dangerouslySetInnerHTML={{ __html: `eruda.init();` }} />
+        <Script src="https://cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
+        <Script id="eruda-init" strategy="beforeInteractive">
+          {`eruda.init();`}
+        </Script>
       </head>
       <body className={`${inter.className}`}>
         <ClerkProvider
