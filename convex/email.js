@@ -1,37 +1,41 @@
+"use node";
+
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-// Action to send email using Resend
 export const sendEmail = action({
   args: {
-    to: v.string(),
+    email: v.string(),
     subject: v.string(),
-    html: v.string(),
-    text: v.optional(v.string()),
+    body: v.string(),
   },
   handler: async (ctx, args) => {
-    if (!process.env.RESEND_API_KEY) {
-      return { success: false, error: "RESEND_API_KEY is not configured" };
-    }
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: args.email,
+      subject: args.subject,
+      html: args.body,
+    };
 
     try {
-      const result = await resend.emails.send({
-        from: "FairShare <onboarding@resend.dev>",
-        to: args.to,
-        subject: args.subject,
-        html: args.html,
-        text: args.text,
-      });
-
-      console.log("Email sent successfully:", result);
-
-      return { success: true, id: result.id };
+      await transporter.sendMail(mailOptions);
+      console.log("Email sent successfully via Nodemailer");
+      return { success: true };
     } catch (error) {
-      console.error("Failed to send email:", error);
-      return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+      console.error("Nodemailer error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   },
 });

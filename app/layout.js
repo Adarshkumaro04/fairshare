@@ -17,6 +17,8 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/logos/logo-s.png" sizes="any" />
+        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+        <script dangerouslySetInnerHTML={{ __html: `eruda.init();` }} />
       </head>
       <body className={`${inter.className}`}>
         <ClerkProvider

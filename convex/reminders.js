@@ -77,13 +77,14 @@ export const sendPaymentReminder = action({
       groupId: args.groupId,
     });
 
-    if (existing && Date.now() - existing.lastSentAt < COOLDOWN_MS) {
-      return {
-        success: false,
-        reason: "cooldown",
-        nextAvailableAt: existing.lastSentAt + COOLDOWN_MS,
-      };
-    }
+    // Temporarily disabled cooldown guard for testing.
+    // if (existing && Date.now() - existing.lastSentAt < COOLDOWN_MS) {
+    //   return {
+    //     success: false,
+    //     reason: "cooldown",
+    //     nextAvailableAt: existing.lastSentAt + COOLDOWN_MS,
+    //   };
+    // }
 
     const toUser = await ctx.runQuery(api.users.getUserById, {
       userId: args.toUserId,
@@ -100,9 +101,9 @@ export const sendPaymentReminder = action({
     `;
 
     const result = await ctx.runAction(api.email.sendEmail, {
-      to: toUser.email,
+      email: toUser.email,
       subject: `${currentUser.name} sent you a payment reminder`,
-      html,
+      body: html,
     });
 
     if (!result.success) {
@@ -118,3 +119,4 @@ export const sendPaymentReminder = action({
     return { success: true };
   },
 });
+
