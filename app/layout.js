@@ -18,12 +18,14 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/logos/logo-s.png" sizes="any" />
+        {/* eslint-disable @next/next/no-sync-scripts */}
         <Script src="https://cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
         <Script
           id="eruda-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: `eruda.init();` }}
         />
+        {/* eslint-enable @next/next/no-sync-scripts */}
       </head>
       <body className={`${inter.className}`}>
         <ClerkProvider
