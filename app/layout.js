@@ -19,9 +19,11 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="icon" href="/logos/logo-s.png" sizes="any" />
         <Script src="https://cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
-        <Script id="eruda-init" strategy="beforeInteractive">
-          {`eruda.init();`}
-        </Script>
+        <Script
+          id="eruda-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: `eruda.init();` }}
+        />
       </head>
       <body className={`${inter.className}`}>
         <ClerkProvider
