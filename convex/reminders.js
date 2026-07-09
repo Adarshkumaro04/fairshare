@@ -2,13 +2,12 @@ import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 
-const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
 export const getReminderLog = query({
   args: {
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
     groupId: v.optional(v.id("groups")),
+    dayKey: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -18,6 +17,7 @@ export const getReminderLog = query({
           .eq("fromUserId", args.fromUserId)
           .eq("toUserId", args.toUserId)
           .eq("groupId", args.groupId)
+          .eq("dayKey", args.dayKey)
       )
       .unique();
   },
@@ -28,6 +28,7 @@ export const logReminder = mutation({
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
     groupId: v.optional(v.id("groups")),
+    dayKey: v.string(),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -37,16 +38,22 @@ export const logReminder = mutation({
           .eq("fromUserId", args.fromUserId)
           .eq("toUserId", args.toUserId)
           .eq("groupId", args.groupId)
+          .eq("dayKey", args.dayKey)
       )
       .unique();
 
     if (existing) {
-      await ctx.db.patch(existing._id, { lastSentAt: Date.now() });
+      await ctx.db.patch(existing._id, {
+        lastSentAt: Date.now(),
+        sentCount: (existing.sentCount ?? 0) + 1,
+      });
     } else {
       await ctx.db.insert("reminderLogs", {
         fromUserId: args.fromUserId,
         toUserId: args.toUserId,
         groupId: args.groupId,
+        dayKey: args.dayKey,
+        sentCount: 1,
         lastSentAt: Date.now(),
       });
     }
@@ -71,20 +78,18 @@ export const sendPaymentReminder = action({
       return { success: false, reason: "not_authenticated" };
     }
 
+    const dayKey = new Date().toISOString().slice(0, 10);
+
     const existing = await ctx.runQuery(api.reminders.getReminderLog, {
       fromUserId: currentUser._id,
       toUserId: args.toUserId,
       groupId: args.groupId,
+      dayKey,
     });
 
-    // Temporarily disabled cooldown guard for testing.
-    // if (existing && Date.now() - existing.lastSentAt < COOLDOWN_MS) {
-    //   return {
-    //     success: false,
-    //     reason: "cooldown",
-    //     nextAvailableAt: existing.lastSentAt + COOLDOWN_MS,
-    //   };
-    // }
+    if (existing?.sentCount >= 2) {
+      return { success: false, reason: "daily_limit_reached" };
+    }
 
     const toUser = await ctx.runQuery(api.users.getUserById, {
       userId: args.toUserId,
@@ -114,6 +119,7 @@ export const sendPaymentReminder = action({
       fromUserId: currentUser._id,
       toUserId: args.toUserId,
       groupId: args.groupId,
+      dayKey,
     });
 
     return { success: true };

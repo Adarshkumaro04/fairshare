@@ -72,11 +72,8 @@ export function GroupBalances({ balances, groupId }) {
 
       if (result.success) {
         toast.success(`Reminder sent to ${member.name}`);
-      } else if (result.reason === "cooldown") {
-        const hoursLeft = Math.ceil(
-          (result.nextAvailableAt - Date.now()) / (60 * 60 * 1000)
-        );
-        toast.error(`Already reminded recently. Try again in ${hoursLeft}h.`);
+      } else if (result.reason === "daily_limit_reached") {
+        toast.error("You've already reminded them twice today. Try again tomorrow.");
       } else {
         toast.error("Couldn't send reminder. Please try again.");
       }

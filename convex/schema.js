@@ -69,7 +69,9 @@ export default defineSchema({
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
     groupId: v.optional(v.id("groups")),
+    dayKey: v.optional(v.string()),
+    sentCount: v.optional(v.number()),
     lastSentAt: v.number(),
-  }).index("by_from_to_group", ["fromUserId", "toUserId", "groupId"]),
+  }).index("by_from_to_group", ["fromUserId", "toUserId", "groupId", "dayKey"]),
 });
 
