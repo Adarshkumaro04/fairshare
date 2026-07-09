@@ -101,9 +101,9 @@ export const sendPaymentReminder = action({
     `;
 
     const result = await ctx.runAction(api.email.sendEmail, {
-      email: toUser.email,
+      to: toUser.email,
       subject: `${currentUser.name} sent you a payment reminder`,
-      body: html,
+      html: html,
     });
 
     if (!result.success) {

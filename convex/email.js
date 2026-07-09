@@ -1,14 +1,13 @@
 "use node";
-
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import nodemailer from "nodemailer";
 
 export const sendEmail = action({
   args: {
-    email: v.string(),
+    to: v.string(),
     subject: v.string(),
-    body: v.string(),
+    html: v.string(),
   },
   handler: async (ctx, args) => {
     const transporter = nodemailer.createTransport({
@@ -19,19 +18,15 @@ export const sendEmail = action({
       },
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: args.email,
-      subject: args.subject,
-      html: args.body,
-    };
-
     try {
-      await transporter.sendMail(mailOptions);
-      console.log("Email sent successfully via Nodemailer");
-      return { success: true };
+      const result = await transporter.sendMail({
+        from: `"FairShare" <${process.env.EMAIL_USER}>`,
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+      });
+      return { success: true, id: result.messageId };
     } catch (error) {
-      console.error("Nodemailer error:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -39,4 +34,3 @@ export const sendEmail = action({
     }
   },
 });
-
