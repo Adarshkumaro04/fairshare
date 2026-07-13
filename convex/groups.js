@@ -1,6 +1,7 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { calculateBalances } from "../lib/calculate-balances";
 
 export const getGroupOrMembers = query({
   args: {
@@ -108,57 +109,7 @@ export const getGroupExpenses = query({
     );
     const ids = memberDetails.map((m) => m.id);
 
-    /* ----------  ledgers ---------- */
-    // total net balance (old behaviour)
-    const totals = Object.fromEntries(ids.map((id) => [id, 0]));
-    // pair‑wise ledger  debtor -> creditor -> amount
-    const ledger = {};
-    ids.forEach((a) => {
-      ledger[a] = {};
-      ids.forEach((b) => {
-        if (a !== b) ledger[a][b] = 0;
-      });
-    });
-
-    /* ----------  apply expenses ---------- */
-    for (const exp of expenses) {
-      const payer = exp.paidByUserId;
-      for (const split of exp.splits) {
-        if (split.userId === payer || split.paid) continue; // skip payer & settled
-        const debtor = split.userId;
-        const amt = split.amount;
-
-        totals[payer] += amt;
-        totals[debtor] -= amt;
-
-        ledger[debtor][payer] += amt; // debtor owes payer
-      }
-    }
-
-    /* ----------  apply settlements ---------- */
-    for (const s of settlements) {
-      totals[s.paidByUserId] += s.amount;
-      totals[s.receivedByUserId] -= s.amount;
-
-      ledger[s.paidByUserId][s.receivedByUserId] -= s.amount; // they paid back
-    }
-
-    /* ----------  net the pair‑wise ledger ---------- */
-    ids.forEach((a) => {
-      ids.forEach((b) => {
-        if (a >= b) return; // visit each unordered pair once
-        const diff = ledger[a][b] - ledger[b][a];
-        if (diff > 0) {
-          ledger[a][b] = diff;
-          ledger[b][a] = 0;
-        } else if (diff < 0) {
-          ledger[b][a] = -diff;
-          ledger[a][b] = 0;
-        } else {
-          ledger[a][b] = ledger[b][a] = 0;
-        }
-      });
-    });
+    const { totals, ledger } = calculateBalances(ids, expenses, settlements);
 
     /* ----------  shape the response ---------- */
     const balances = memberDetails.map((m) => ({

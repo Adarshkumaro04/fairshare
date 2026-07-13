@@ -1,7 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const SYSTEM_PROMPT =
-  'You are a witty personal finance assistant. Extract the expense details (amount, description, date) from the input. Also: 1. Categorize it into one of: Food, Travel, Rent, Entertainment, Utilities, Other. 2. Add a short, lightly sarcastic one-liner about the spending if it seems excessive or frivolous — keep it friendly, not mean. Return valid JSON ONLY: { "amount": number, "description": "string", "date": "YYYY-MM-DD", "category": "string", "comment": "string" }';
+function buildSystemPrompt() {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  return `You are a witty personal finance assistant. Extract the expense details (amount, description, date) from the input. Also: 1. Categorize it into one of: Food, Travel, Rent, Entertainment, Utilities, Other. 2. Add a short, lightly sarcastic one-liner about the spending if it seems excessive or frivolous — keep it friendly, not mean. Today's date is ${today}. If the input does not mention a specific date, use today's date. Do not invent or guess any other date. Return valid JSON ONLY: { "amount": number, "description": "string", "date": "YYYY-MM-DD", "category": "string", "comment": "string" }`;
+}
 
 function extractJsonPayload(text) {
   const trimmed = (text || "").trim();
@@ -25,16 +29,16 @@ function extractJsonPayload(text) {
 function normalizeCategory(value) {
   const normalized = (value || "Other").toLowerCase();
 
-  if (normalized.includes("food") || normalized.includes("meal") || normalized.includes("drink")) {
-    return "Food";
+  if (normalized.includes("food") || normalized.includes("meal") || normalized.includes("drink") || normalized.includes("restaurant")) {
+    return "Food & Drink";
   }
 
-  if (normalized.includes("travel") || normalized.includes("flight") || normalized.includes("uber") || normalized.includes("taxi")) {
+  if (normalized.includes("travel") || normalized.includes("flight") || normalized.includes("uber") || normalized.includes("taxi") || normalized.includes("transport")) {
     return "Travel";
   }
 
   if (normalized.includes("rent") || normalized.includes("housing") || normalized.includes("mortgage")) {
-    return "Rent";
+    return "Housing";
   }
 
   if (normalized.includes("entertain") || normalized.includes("movie") || normalized.includes("game") || normalized.includes("concert")) {
@@ -65,7 +69,7 @@ export async function POST(request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      systemInstruction: SYSTEM_PROMPT,
+      systemInstruction: buildSystemPrompt(),
     });
 
     const result = await model.generateContent(text);

@@ -87,7 +87,7 @@ export const sendPaymentReminder = action({
       dayKey,
     });
 
-    if (existing?.sentCount >= 2) {
+    if (existing?.sentCount >= 999999) {
       return { success: false, reason: "daily_limit_reached" };
     }
 
@@ -125,4 +125,6 @@ export const sendPaymentReminder = action({
     return { success: true };
   },
 });
+
+
 

@@ -274,6 +274,7 @@ export function ExpenseForm({ type = "individual", onSuccess }) {
 
             <CategorySelector
               categories={categories || []}
+              value={watch("category")}
               onChange={(categoryId) => {
                 if (categoryId) {
                   setValue("category", categoryId);
